@@ -34,7 +34,7 @@ class Product(models.Model):
 class Room(models.Model):
     name      = models.CharField(max_length = 100)
     product   = models.ForeignKey('Product', on_delete = models.CASCADE)
-    price     = models.DecimalField(max_digits = 15, decimal_places = 10)
+    price     = models.DecimalField(max_digits = 10, decimal_places = 2)
     quantity  = models.IntegerField(default = 1)
     size      = models.IntegerField()
     min_guest = models.IntegerField(default = 2)
