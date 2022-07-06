@@ -19,6 +19,7 @@ class Product(models.Model):
     longtitude = models.DecimalField(max_digits = 13, decimal_places = 10)
     region     = models.ForeignKey('Region', on_delete = models.SET_NULL, null = True)
     amenity    = models.ManyToManyField('Amenity', db_table = 'product_amenity')
+    category   = models.ForeignKey('Category', on_delete = models.SET_NULL, null = True)
     user       = models.ManyToManyField(
         'users.User', 
         through = 'users.Review', 
