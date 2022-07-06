@@ -4,9 +4,9 @@ from core.models import TimeStampModel
 
 class User(TimeStampModel):
     name         = models.CharField(max_length = 30)
-    email        = models.CharField(max_length = 255)
-    phone_number = models.CharField(max_length = 20, default = '')
-    kakao_pk     = models.IntegerField()
+    email        = models.CharField(max_length = 255, unique = True)
+    phone_number = models.CharField(max_length = 20, default = '', unique = True)
+    kakao_pk     = models.BigIntegerField(unique = True)
     credit       = models.DecimalField(max_digits = 10, decimal_places = 2, default = 200000.00)
 
     class Meta():
