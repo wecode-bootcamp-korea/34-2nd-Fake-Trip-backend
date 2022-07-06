@@ -67,48 +67,53 @@ class ProductListView(View):
 
 class ProductView(View):
     def get(self, request, product_id):
-        start_date = request.GET.get('start_date')
-        end_date   = request.GET.get('end_date')
+        try:
+            start_date = request.GET.get('start_date')
+            end_date   = request.GET.get('end_date')
 
-        product = Product.objects.annotate(
-            price        = Min(Coalesce('room__price',0),output_field=IntegerField()),
-            rating       = Avg(Coalesce('review__rating',0)),
-            rating_count = Count(Coalesce('review__id',0))
-        ).prefetch_related('productimage_set', 'room_set','room_set__reservation_set').get(id = product_id)
+            product = Product.objects.annotate(
+                price        = Min('room__price'),
+                review_count = Count('review__id'),
+                rating       = Avg('review__rating'),
+            ).prefetch_related('productimage_set', 'room_set','room_set__reservation_set').get(id = product_id)
 
-        reservations       = Reservation.objects.filter(room__product = product)
-        rooms              = Room.objects.filter(product = product)
-        search_date        = set(pandas.date_range(start_date,end_date)[:-1])
+            reservations = Reservation.objects.filter(room__product = product)
+            rooms        = Room.objects.filter(product = product)
+            search_date  = set(pandas.date_range(start_date,end_date)[:-1])
 
-        is_sold_out = True
+            is_sold_out = True
 
-        for room in rooms:
-            for reservation in reservations:
-                reservation_date = set(pandas.date_range(reservation.start_date,reservation.end_date)[:-1])
-                if search_date & reservation_date:
-                    room.quantity -= 1 
-            if bool(room.quantity) == True:
-                is_sold_out = False
+            for room in rooms:
+                for reservation in reservations:
+                    reservation_date = set(pandas.date_range(reservation.start_date,reservation.end_date)[:-1])
+                    if search_date & reservation_date:
+                        room.quantity -= 1 
+                if bool(room.quantity) == True:
+                    is_sold_out = False
+                    break
 
-        result = {
-            'product_id'   : product.id,
-            'name'         : product.name,
-            'grade'        : product.grade,
-            'address'      : product.address,
-            'check_in'     : product.check_in,
-            'check_out'    : product.check_out,
-            'latitude'     : product.latitude,
-            'longtitude'   : product.longtitude,
-            'price'        : int(product.price) * len(search_date),
-            'rating'       : product.rating,
-            'rating_count' : product.rating_count,
-            'images'       : [
-                {
-                    'url'     : image.url,
-                    'is_main' : image.is_main
-                }for image in product.productimage_set.all()
-            ],
-            'is_sold_out' : is_sold_out
-        }
+            result = {
+                'product_id'   : product.id,
+                'name'         : product.name,
+                'grade'        : product.grade if product.grade else 0,
+                'address'      : product.address,
+                'check_in'     : product.check_in,
+                'check_out'    : product.check_out,
+                'latitude'     : product.latitude,
+                'longtitude'   : product.longtitude,
+                'price'        : int(product.price) * len(search_date),
+                'rating'       : product.rating if product.rating else 0.0,
+                'review_count' : product.review_count if product.review_count else 0,
+                'images'       : [
+                    {
+                        'url'     : image.url,
+                        'is_main' : image.is_main
+                    }for image in product.productimage_set.all()
+                ],
+                'is_sold_out' : is_sold_out
+            }
 
-        return JsonResponse(result, status = 200)
+            return JsonResponse(result, status = 200)
+    
+        except Product.DoesNotExist:
+            return JsonResponse({'message' : 'Invalid Product'}, status = 400)

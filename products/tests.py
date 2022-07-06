@@ -1,6 +1,9 @@
+from http        import client
 from django.test import TestCase, Client
 
 from products.models import Category, Region, Product, Room, ProductImage
+from users.models    import User, Review
+from orders.models   import Reservation, ReservationStatus
 
 class ProductListTest(TestCase):
     def setUp(self):
@@ -141,3 +144,115 @@ class ProductListTest(TestCase):
                 ]
         })                
         self.assertEqual(response.status_code, 200)
+
+class ProductTest(TestCase):
+    def setUp(self):
+        user =User.objects.create(
+            name = '위코드',
+            email = 'alsdgkja@natemar.com',
+            kakao_pk = 12397511,
+        )
+
+        ReservationStatus.objects.create(id = 1, status = '123')
+
+        product = Product.objects.create(
+            id=1,
+            name       = '신라호텔',
+            address    = '서울특별시 강남구',
+            check_in   = '15:00',
+            check_out  = '11:00',
+            latitude   = 123.1419517111,
+            longtitude = 60.1231419112,
+        )
+        ProductImage.objects.create(
+            url = 'aaaaaa.png',
+            is_main = True,
+            product=product
+        )
+        Room.objects.create(
+            id =1,
+            name     = '가나다',
+            price    = 100000.00,
+            product  = product,
+            quantity = 2,
+            size     = 20,
+        )
+
+        Room.objects.create(
+            id=2,
+            name     = '가나',
+            price    = 120000.00,
+            product  = product,
+            quantity = 2,
+            size     = 20,
+        )
+
+        Room.objects.create(
+            id=3,
+            name     = '가',
+            price    = 140000.00,
+            product  = product,
+            quantity = 2,
+            size     = 20,
+        )
+
+        Reservation.objects.create(
+            user = user,
+            room_id = 1,
+            start_date = '2022-03-31',
+            end_date = '2022-04-02',
+            guest_information = {'agag' : 'agagag'},
+            reservation_status_id = 1,
+        )
+        
+        Review.objects.create(
+            user      = user,
+            product   = product,
+            content   = '',
+            image_url = 'asd',
+            rating    = 3,
+            room_id   = 1
+        )
+    
+    def tearDown(self):
+        ReservationStatus.objects.all().delete()
+        Reservation.objects.all().delete()
+        Room.objects.all().delete()
+        Product.objects.all().delete()
+        User.objects.all().delete()
+        Review.objects.all().delete()
+    
+    def test_success_product_get(self):
+        client =Client()
+        response = client.get('/products/1?start_date=2022-03-31&end_date=2022-04-02')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(),
+            {
+            'product_id'   : 1,
+            'name'         : '신라호텔',
+            'grade'        : 0,
+            'address'      : '서울특별시 강남구',
+            'check_in'     : '15:00',
+            'check_out'    : '11:00',
+            'latitude'     : '123.1419517111',
+            'longtitude'   : '60.1231419112',
+            'price'        : 200000,
+            'rating'       : 3.0,
+            'review_count' : 1,
+            'images'       : [
+                {
+                    'url'     : 'aaaaaa.png',
+                    'is_main' : True
+                }
+            ],
+            'is_sold_out' : False
+            }
+        )
+    
+    def test_fail_product_get(self):
+        client =Client()
+        response = client.get('/products/2?start_date=2022-03-31&end_date=2022-04-02')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'message' : 'Invalid Product'})
