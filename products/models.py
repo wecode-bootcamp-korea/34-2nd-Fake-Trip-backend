@@ -63,7 +63,7 @@ class ProductImage(models.Model):
 
 class RoomImage(models.Model):
     url     = models.CharField(max_length = 255)
-    product = models.ForeignKey('Product', on_delete = models.CASCADE)
+    room    = models.ForeignKey('Room', on_delete = models.CASCADE)
     is_main = models.BooleanField()
 
     class Meta():

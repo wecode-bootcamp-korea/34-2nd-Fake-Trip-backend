@@ -11,7 +11,7 @@ class Reservation(TimeStampModel):
     end_date           = models.DateField()
 
     class Meta():
-        db_table = 'resevations'
+        db_table = 'reservations'
 
 class ReservationStatus(models.Model):
     status = models.CharField(max_length = 50)
