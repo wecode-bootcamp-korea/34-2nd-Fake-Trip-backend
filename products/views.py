@@ -1,10 +1,8 @@
 import pandas
 
-from datetime import timedelta
-
 from django.http                import JsonResponse
 from django.views               import View
-from django.db.models           import Q, F, Min, Avg, Count, IntegerField, Max, Sum
+from django.db.models           import Q, Min, Avg, Count, IntegerField, Max
 from django.db.models.functions import Coalesce
 
 from products.models import Product, Room
@@ -113,7 +111,6 @@ class ProductView(View):
         }
 
         return JsonResponse(result, status = 200)
-
 
 class ReviewsView(View):
     def get(self, request, product_id):
