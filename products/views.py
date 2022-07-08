@@ -1,14 +1,18 @@
 import pandas
+import boto3
 
-from datetime import timedelta
+from datetime import timedelta,datetime
 
-from django.http                import JsonResponse
+from django.http                import JsonResponse, HttpResponse
 from django.views               import View
-from django.db.models           import Q, F, Min, Avg, Count, IntegerField, Max, Sum
+from django.db.models           import Q, Min, Avg, Count, IntegerField, Max, Sum
 from django.db.models.functions import Coalesce
 
-from products.models import Product, Room
-from orders.models   import Reservation
+from products.models       import Product, Room
+from users.models          import Review
+from orders.models         import Reservation
+from core.token_validators import token_validator
+from faketrip.settings     import AWS_S3_ACCESS_KEY_ID, AWS_S3_SECRET_ACCESS_KEY
 
 class ProductListView(View):
     def get(self, request):
@@ -112,3 +116,76 @@ class ProductView(View):
         }
 
         return JsonResponse(result, status = 200)
+
+class ReviewView(View):
+    @token_validator
+    def post(self, request, product_id):
+        try:
+            room_id      = request.POST.get('room_id')
+            content      = request.POST.get('content')
+            rating       = request.POST.get('rating')
+            review_image = request.FILES.get('review_image')
+            image_url    = None
+
+            if not rating:
+                return JsonResponse({'message' : 'Choice Rating'}, status = 400)
+
+            if not content:
+                return JsonResponse({'message' : 'Insert Content'}, status = 400)
+            
+            if review_image:
+                image_time = (str(datetime.now())).replace(" ","") 
+                image_type = (review_image.content_type).split("/")[1]
+
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id     = AWS_S3_ACCESS_KEY_ID,
+                    aws_secret_access_key = AWS_S3_SECRET_ACCESS_KEY
+                )
+
+                s3_client.upload_fileobj(
+                    review_image,
+                    "ding-s3-bucket",
+                    image_time+"."+image_type,
+                    ExtraArgs = {
+                        "ContentType" : review_image.content_type
+                    }
+                )
+
+                image_url = "http://dkinterest.s3.ap-northeast-2.amazonaws.com/"+image_time+"."+image_type
+                image_url = image_url.replace(" ","/")
+
+            Review.objects.create(
+                user       = request.user,
+                product_id = product_id,
+                room_id    = room_id,
+                content    = content,
+                rating     = rating,
+                image_url  = image_url
+            )
+
+            return JsonResponse({'message' : 'Create Review'}, status = 201)
+
+        except IndexError:
+            return JsonResponse({'message' : 'Index Error'}, status = 400)
+
+    @token_validator
+    def delete(self, request, product_id):
+        try:
+            review_id = request.GET.get('review_id')
+            review    = Review.objects.get(id = review_id)
+
+            if review.user != request.user:
+                return JsonResponse({'message' : 'Invalid Review'}, status = 400)
+
+            if review.product_id != product_id:
+                return JsonResponse({'message' : 'Invalid Review'}, status = 400)
+
+            review.delete()
+
+            return HttpResponse(status = 204)
+
+        except Review.DoesNotExist:
+            return JsonResponse({'message' : 'There Is No Review'}, status = 400)
+        
+

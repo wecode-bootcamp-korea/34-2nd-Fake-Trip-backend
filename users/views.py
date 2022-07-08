@@ -1,5 +1,3 @@
-import requests
-
 import jwt
 
 from django.views import View
@@ -19,7 +17,7 @@ class SigninView(View):
             email    = user_information.get('kakao_account').get('email')
             nickname = user_information.get('properties').get('nickname')
 
-            user, created = User.objects.get_or_create(kakao_pk=kakao_pk, default = {"email" : email, "name" : nickname})
+            user, created = User.objects.get_or_create(kakao_pk=kakao_pk, defaults = {"email" : email, "name" : nickname, 'phone_number' : None})
             
             if not created and not(user.email == email and user.name == nickname):
                 user.email, user.name = email, nickname
