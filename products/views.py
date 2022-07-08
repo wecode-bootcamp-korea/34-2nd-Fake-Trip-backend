@@ -1,14 +1,12 @@
 import pandas
 
-from datetime import timedelta
-
 from django.http                import JsonResponse
 from django.views               import View
-from django.db.models           import Q, F, Min, Avg, Count, IntegerField, Max, Sum
+from django.db.models           import Q, Min, Avg, Count, IntegerField, Max
 from django.db.models.functions import Coalesce
 
-from products.models import Product, Room
-from orders.models   import Reservation
+from products.models       import Product, Room
+from orders.models         import Reservation
 
 class ProductListView(View):
     def get(self, request):
@@ -112,3 +110,5 @@ class ProductView(View):
         }
 
         return JsonResponse(result, status = 200)
+        
+
