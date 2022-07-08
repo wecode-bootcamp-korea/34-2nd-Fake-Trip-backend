@@ -1,10 +1,12 @@
 import jwt
 
-from unittest.mock import patch, MagicMock
-from django.test   import TestCase, Client
+from unittest.mock                  import patch, MagicMock
+from django.test                    import TestCase, Client
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from .models           import User
+from .models           import User, Review
 from faketrip.settings import SECRET_KEY, ALGORITHM
+from products.models   import Region, Category, Product
 
 class SinginTest(TestCase):
     def setUp(self):
@@ -121,3 +123,104 @@ class SinginTest(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.headers.get('Authorization'),None)
         self.assertEqual(response.json()['message'], 'Invalid Token')
+
+class ReviewTest(TestCase):
+    def setUp(self):
+        user = User.objects.create(
+            id       = 1,
+            kakao_pk = 151512,
+            email    = 'qwer123@nate.com',
+            name     = '위코드'
+        )
+
+        Region.objects.create(
+            id = 1,
+            name = '서울'
+        )
+
+        Category.objects.create(
+            id = 1,
+            name = '호텔'
+        )
+
+        Product.objects.create(
+            id = 1,
+            name = '호텔1',
+            grade = 5,
+            check_in = '14:00',
+            check_out = '11:00',
+            address = '호텔1 주소',
+            latitude = 33.2406823000,
+            longtitude = 126.5317835000,
+            region_id = 1,
+            category_id = 1)
+
+    def tearDown(self):
+        User.objects.all().delete()
+        Region.objects.all().delete()
+        Category.objects.all().delete()
+        Product.objects.all().delete()
+        Review.objects.all().delete()
+
+    def test_success_review_post(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : '멋있어요', 'rating' : '3', 'review_image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Create Review'}
+        )
+        self.assertEqual(response.status_code, 201)
+    
+    def test_fail_review_post_there_is_no_content(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'rating' : '3', 'review_image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Insert Content'}
+        )
+        self.assertEqual(response.status_code, 400)
+    
+    def test_fail_review_post_there_is_no_rating(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : 'agag', 'review_imagee' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Choice Rating'}
+        )
+        self.assertEqual(response.status_code, 400)
+    
+    def test_fail_review_post_there_in_no_token(self):
+        client    = Client()
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : 'agag', 'review_image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid Token'}
+        )
+        self.assertEqual(response.status_code, 401)
+    
+    def test_fail_review_post_invalid_token(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 2}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : 'agag', 'review_image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid User'}
+        )
+        self.assertEqual(response.status_code, 401)

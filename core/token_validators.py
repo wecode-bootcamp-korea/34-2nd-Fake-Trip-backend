@@ -12,7 +12,7 @@ def token_validator(func):
             payload      = jwt.decode(access_token, SECRET_KEY, ALGORITHM)
             user         = User.objects.get(id=payload['user_id'])
             request.user = user  
-
+            
             return func(self, request, *args, **kwargs)
 
         except jwt.exceptions.DecodeError:
@@ -20,5 +20,5 @@ def token_validator(func):
 
         except User.DoesNotExist:
             return JsonResponse({'message' : 'Invalid User'}, status=401)
-
-    return wrapper 
+            
+    return wrapper
