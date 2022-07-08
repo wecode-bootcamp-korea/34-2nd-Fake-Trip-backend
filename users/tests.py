@@ -1,10 +1,14 @@
 import jwt
 
-from unittest.mock import patch, MagicMock
-from django.test   import TestCase, Client
+import json
 
-from .models           import User
+from unittest.mock                  import patch, MagicMock
+from django.test                    import TestCase, Client
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+from .models           import User, Review
 from faketrip.settings import SECRET_KEY, ALGORITHM
+from products.models   import Region, Category, Product
 
 class SinginTest(TestCase):
     def setUp(self):
@@ -119,3 +123,198 @@ class SinginTest(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.headers.get('Authorization'),None)
         self.assertEqual(response.json()['message'], 'Invalid Token')
+
+class ReviewTest(TestCase):
+    def setUp(self):
+        user = User.objects.create(
+            id       = 1,
+            kakao_pk = 151512,
+            email    = 'qwer123@nate.com',
+            name     = '위코드'
+        )
+
+        User.objects.create(
+            id       = 3,
+            kakao_pk = 1511512,
+            email    = 'qwer11123@nate.com',
+            name     = '위코드1'
+        )
+
+        Region.objects.create(
+            id = 1,
+            name = '서울'
+        )
+
+        Category.objects.create(
+            id = 1,
+            name = '호텔'
+        )
+
+        Product.objects.create(
+            id = 1,
+            name = '호텔1',
+            grade = 5,
+            check_in = '14:00',
+            check_out = '11:00',
+            address = '호텔1 주소',
+            latitude = 33.2406823000,
+            longtitude = 126.5317835000,
+            region_id = 1,
+            category_id = 1)
+        
+        Review.objects.create(
+            id = 1,
+            content ='1414',
+            image_url = None,
+            rating = 1,
+            user_id =1,
+            product_id =1
+        )
+
+        Review.objects.create(
+            id = 2,
+            content ='1414',
+            image_url  = None,
+            rating     = 1,
+            user_id    = 3,
+            product_id =1
+        )
+
+    def tearDown(self):
+        User.objects.all().delete()
+        Region.objects.all().delete()
+        Category.objects.all().delete()
+        Product.objects.all().delete()
+        Review.objects.all().delete()
+
+    def test_success_review_post(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : '멋있어요', 'rating' : '3', 'image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Create Review'}
+        )
+        self.assertEqual(response.status_code, 201)
+    
+    def test_fail_review_post_there_is_no_content(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'rating' : '3', 'image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Insert Content'}
+        )
+        self.assertEqual(response.status_code, 400)
+    
+    def test_fail_review_post_there_is_no_rating(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : 'agag', 'image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Choice Rating'}
+        )
+        self.assertEqual(response.status_code, 400)
+    
+    def test_fail_review_post_there_in_no_token(self):
+        client    = Client()
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : 'agag', 'image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid Token'}
+        )
+        self.assertEqual(response.status_code, 401)
+    
+    def test_fail_review_post_invalid_token(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 2}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body      = {'content' : 'agag', 'image' : image, 'product_id' : 1}
+        response  = client.post('/users/review', body, **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid User'}
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_fail_review_delete_there_is_no_token(self):
+        client    = Client()
+        response  = client.delete('/users/review?review_id=1&product_id=1')
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid Token'}
+        )
+        self.assertEqual(response.status_code, 401)
+    
+    def test_fail_review_delete_invalid_token(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 2}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        response  = client.delete('/users/review?review_id=1&product_id=1', **headers)
+       
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid User'}
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_fail_review_delete_there_is_no_review(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        response  = client.delete('/users/review?review_id=3&product_id=1', **headers)
+
+        self.assertEqual(response.json(),
+            {'message' : 'There Is No Review'}
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_fail_review_delete_invalid_review_user_id(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 3}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        response  = client.delete('/users/review?review_id=1&product_id=1', **headers)
+
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid Review'}
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_fail_review_delete_ivalid_review_product_id(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        response  = client.delete('/users/review?review_id=1&product_id=2', **headers)
+        
+        self.assertEqual(response.json(),
+            {'message' : 'Invalid Review'}
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_success_review_delete(self):
+        client    = Client()
+        token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers   = {"HTTP_Authorization" : token}
+        response  = client.delete('/users/review?review_id=1&product_id=1', **headers)
+        
+        self.assertEqual(response.status_code, 204)
+    
+    def test_succes_review_patch(self):
+        client   = Client()
+        token    = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers  = {"HTTP_Authorization" : token, 'HTTP_ACCEPT' : 'application/json'}
+        image    = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body     = {'content':'a', 'afa' : 'aga', 'image' : image}
+        response = client.patch('/users/review', body, **headers)
