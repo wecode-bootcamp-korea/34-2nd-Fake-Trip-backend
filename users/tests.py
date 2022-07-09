@@ -9,10 +9,11 @@ from faketrip.settings import SECRET_KEY, ALGORITHM
 class SinginTest(TestCase):
     def setUp(self):
         User.objects.create(
-            id       = 1,
-            kakao_pk = 151512,
-            email    = 'qwer123@nate.com',
-            name     = '위코드'
+            id           = 1,
+            kakao_pk     = 151512,
+            email        = 'qwer123@nate.com',
+            name         = '위코드',
+            phone_number = None
         )
 
     def tearDown(self):
@@ -101,6 +102,7 @@ class SinginTest(TestCase):
         self.assertEqual(response.json()['message'], 'SUCCESS')
         self.assertEqual(user.name, '코드')
         self.assertEqual(user.email, 'qwer@nate.com')
+        self.assertEqual(user.phone_number, None)
 
     @patch("core.social_apis.requests")
     def test_fail_kakao_signin(self, mocked_requests):
