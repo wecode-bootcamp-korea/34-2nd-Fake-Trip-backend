@@ -192,8 +192,8 @@ class ReviewsTest(TestCase):
         token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
         headers   = {"HTTP_Authorization" : token}
         image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
-        body      = {'content' : '멋있어요', 'rating' : '3', 'image' : image}
-        response  = client.post('/products/1/review', body, **headers)
+        body      = {'content' : '멋있어요', 'rating' : '3', 'image' : image, 'product_id' : 1}
+        response  = client.post('/products/review', body, **headers)
        
         self.assertEqual(response.json(),
             {'message' : 'Create Review'}
@@ -205,8 +205,8 @@ class ReviewsTest(TestCase):
         token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
         headers   = {"HTTP_Authorization" : token}
         image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
-        body      = {'rating' : '3', 'image' : image}
-        response  = client.post('/products/1/review', body, **headers)
+        body      = {'rating' : '3', 'image' : image, 'product_id' : 1}
+        response  = client.post('/products/review', body, **headers)
        
         self.assertEqual(response.json(),
             {'message' : 'Insert Content'}
@@ -218,8 +218,8 @@ class ReviewsTest(TestCase):
         token     = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
         headers   = {"HTTP_Authorization" : token}
         image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
-        body      = {'content' : 'agag', 'image' : image}
-        response  = client.post('/products/1/review', body, **headers)
+        body      = {'content' : 'agag', 'image' : image, 'product_id' : 1}
+        response  = client.post('/products/review', body, **headers)
        
         self.assertEqual(response.json(),
             {'message' : 'Choice Rating'}
@@ -229,8 +229,8 @@ class ReviewsTest(TestCase):
     def test_fail_review_post_there_in_no_token(self):
         client    = Client()
         image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
-        body      = {'content' : 'agag', 'image' : image}
-        response  = client.post('/products/1/review', body)
+        body      = {'content' : 'agag', 'image' : image, 'product_id' : 1}
+        response  = client.post('/products/review', body)
        
         self.assertEqual(response.json(),
             {'message' : 'Invalid Token'}
@@ -242,8 +242,8 @@ class ReviewsTest(TestCase):
         token     = jwt.encode({'user_id' : 2}, SECRET_KEY, ALGORITHM)
         headers   = {"HTTP_Authorization" : token}
         image     = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
-        body      = {'content' : 'agag', 'image' : image}
-        response  = client.post('/products/1/review', body, **headers)
+        body      = {'content' : 'agag', 'image' : image, 'product_id' : 1}
+        response  = client.post('/products/review', body, **headers)
        
         self.assertEqual(response.json(),
             {'message' : 'Invalid User'}

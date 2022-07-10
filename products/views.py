@@ -119,11 +119,12 @@ class ProductView(View):
 
 class ReviewView(View):
     @token_validator
-    def post(self, request, product_id):
+    def post(self, request):
         try:
             room_id      = request.POST.get('room_id')
             content      = request.POST.get('content')
             rating       = request.POST.get('rating')
+            product_id   = request.POST.get('product_id')
             review_image = request.FILES.get('review_image')
             image_url    = None
 
