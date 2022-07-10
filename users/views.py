@@ -1,3 +1,5 @@
+import json
+
 import jwt
 import boto3
 
@@ -103,5 +105,40 @@ class ReviewView(View):
             
             return HttpResponse(status = 204)
 
+        except Review.DoesNotExist:
+            return JsonResponse({'message' : 'There Is No Review'}, status = 400)
+
+    @token_validator
+    def patch(self, request):
+        try:
+            print(request.body)
+            data         = json.loads(request.body.decode())
+            review_id    = data.get('review_id')
+            content      = data.POST.get('content')
+            rating       = data.POST.get('rating')
+            review_image = data.FILES.get('review_image')
+            image_url    = None
+            review       = Review.objects.get(id = review_id)
+
+            if review_image:
+                image_time = (str(datetime.now())).replace(" ","") 
+                image_type = (review_image.content_type).split("/")[1]
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id     = AWS_S3_ACCESS_KEY_ID,
+                    aws_secret_access_key = AWS_S3_SECRET_ACCESS_KEY
+                )
+                s3_client.upload_fileobj(
+                    review_image,
+                    "ding-s3-bucket",
+                    image_time+"."+image_type,
+                    ExtraArgs = {
+                        "ContentType" : review_image.content_type
+                    }
+                )
+                image_url = "http://dkinterest.s3.ap-northeast-2.amazonaws.com/"+image_time+"."+image_type
+                image_url = image_url.replace(" ","/")
+            return JsonResponse({'afa':'afaf'},status = 200)
+        
         except Review.DoesNotExist:
             return JsonResponse({'message' : 'There Is No Review'}, status = 400)

@@ -1,5 +1,7 @@
 import jwt
 
+import json
+
 from unittest.mock                  import patch, MagicMock
 from django.test                    import TestCase, Client
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -308,3 +310,11 @@ class ReviewTest(TestCase):
         response  = client.delete('/users/review?review_id=1&product_id=1', **headers)
         
         self.assertEqual(response.status_code, 204)
+    
+    def test_succes_review_patch(self):
+        client   = Client()
+        token    = jwt.encode({'user_id' : 1}, SECRET_KEY, ALGORITHM)
+        headers  = {"HTTP_Authorization" : token, 'HTTP_ACCEPT' : 'application/json'}
+        image    = SimpleUploadedFile('test_image.jpg', b'asda', content_type='image/jpeg')
+        body     = {'content':'a', 'afa' : 'aga', 'image' : image}
+        response = client.patch('/users/review', body, **headers)
