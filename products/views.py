@@ -9,6 +9,7 @@ from django.db.models.functions import Coalesce
 
 from products.models import Product, Room
 from orders.models   import Reservation
+from users.models    import Review
 
 class ProductListView(View):
     def get(self, request):
@@ -112,3 +113,43 @@ class ProductView(View):
         }
 
         return JsonResponse(result, status = 200)
+
+
+class ReviewsView(View):
+    def get(self, request, product_id):
+        sort_key   = request.GET.get('sort', 'newest')
+        rating     = request.GET.get('rating')
+        has_image  = request.GET.get('has_image')
+        offset     = request.GET.get('offset', 0)
+        limit      = request.GET.get('limit', 10)
+
+        sort_dict = {
+            'newest'      : '-updated_at',
+            'random'      : '?',
+            'low_rating'  : 'rating',
+            'high_rating' : '-rating'
+        }
+
+        q = Q(product_id = product_id)
+
+        if rating:
+            q &= Q(rating__exact = rating)
+
+        if has_image:
+            q &= Q(image_url__isnull = False)
+
+        reviews = Review.objects.filter(q).order_by(sort_dict.get(sort_key))[offset:offset + limit]
+
+        result = [
+            {   
+                'id'         : review.id,
+                'product_id' : review.product_id,
+                'user_name'  : review.user.name,
+                'rating'     : review.rating,
+                'content'    : review.content,
+                'image_url'  : review.image_url,
+                'updated_at' : review.updated_at.date(),
+            }for review in reviews
+        ]
+
+        return JsonResponse({'reviews' : result}, status = 200)
