@@ -8,6 +8,7 @@ from django.http  import JsonResponse
 from users.models      import User
 from faketrip.settings import SECRET_KEY, ALGORITHM
 from core.social_apis  import Kakao_Token_Error, KakaoAPI
+from core.validators   import validate_phone_number
 
 class SigninView(View):
     def get(self, request):
@@ -32,3 +33,19 @@ class SigninView(View):
         
         except Kakao_Token_Error as error:
             return JsonResponse({'message' : error.message}, status = 401)
+
+class UserView(View):
+    @token_validator
+    def patch(self, request):
+        try:
+            phone_number = request.body.get(phone_number)
+
+            validate_phone_number(phone_number)
+
+            request.user.phone_number = phone_number
+            request.user.save()
+
+            return JsonResponse({'message' : 'SUCCES'}, status = 200)
+
+        except ValidationError as e:
+            return JsonResponse({'message' : e.message}, status = 400) 
