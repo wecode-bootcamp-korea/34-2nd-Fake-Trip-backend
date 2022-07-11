@@ -1,6 +1,10 @@
+from datetime    import datetime
+
 from django.test import TestCase, Client
 
-from products.models import Category, Region, Product, Room, ProductImage
+from products.models   import Category, Region, Product, Room, ProductImage
+from users.models      import User, Review
+from faketrip.settings import SECRET_KEY, ALGORITHM
 
 class ProductListTest(TestCase):
     def setUp(self):
@@ -140,4 +144,209 @@ class ProductListTest(TestCase):
                 }
                 ]
         })                
+        self.assertEqual(response.status_code, 200)
+
+
+class ReviewsTest(TestCase):
+    def setUp(self):
+        User.objects.create(
+            id           = 1,
+            name         = '딩',
+            email        = 'aaaa@nate.com',
+            phone_number = '111',
+            kakao_pk     = 1
+        )
+
+        User.objects.create(
+            id           = 2,
+            name         ='짐',
+            email        ='afafag@a.com',
+            phone_number = '123',
+            kakao_pk     = 2
+        )
+
+        Category.objects.create(
+            id   = 1,
+            name = '호텔'
+        )
+
+        Region.objects.create(
+            id   = 1,
+            name = '제주도'
+        )
+
+        Product.objects.create(
+            id          = 1,
+            name        = '호텔1',
+            grade       = 5,
+            check_in    = '14:00',
+            check_out   = '11:00',
+            address     = '호텔1 주소',
+            latitude    = 33.2406823000,
+            longtitude  = 126.5317835000,
+            region_id   = 1,
+            category_id = 1)
+        
+        Review.objects.create(
+            id         = 1,
+            content    = '1',
+            image_url  = '123',
+            rating     = 4,
+            product_id = 1,
+            user_id    = 1
+        )
+
+        Review.objects.create(
+            id         = 2,
+            content    = '2',
+            image_url  = '1234',
+            rating     = 3,
+            product_id = 1,
+            user_id    = 1
+        )
+
+        Review.objects.create(
+            id         = 3,
+            content    = '3',
+            image_url  = None,
+            rating     = 4,
+            product_id = 1,
+            user_id    = 1
+        )
+
+        Review.objects.create(
+            id         = 4,
+            content    = '4',
+            image_url  = None,
+            rating     = 3,
+            product_id = 1,
+            user_id    = 2
+        )
+
+        Review.objects.create(
+            id         = 5,
+            content    = '5',
+            image_url  = None,
+            rating     = 1,
+            product_id = 1,
+            user_id    = 2
+        )
+        
+        Review.objects.create(
+            id         = 6,
+            content    = '6',
+            image_url  = None,
+            rating     = 1,
+            product_id = 1,
+            user_id    = 2
+        )
+
+        Review.objects.create(
+            id         = 7,
+            content    = '7',
+            image_url  = None,
+            rating     = 1,
+            product_id = 1,
+            user_id    = 2
+        )
+
+        for i in range(8,21):
+            Review.objects.create(
+                id         = i,
+                content    = str(i),
+                image_url  = None,
+                rating     = 3,
+                product_id = 1,
+                user_id    = 1
+            )
+        Review.objects.create(
+            id         = 21,
+            content    = '21',
+            image_url  = None,
+            rating     = 3,
+            product_id = 1,
+            user_id    = 1
+        )
+    
+    def tearDown(self):
+        Category.objects.all().delete()
+        Region.objects.all().delete()
+        Product.objects.all().delete()
+        Review.objects.all().delete()
+        User.objects.all().delete()
+
+    def test_success_reviews_default(self):
+        client   = Client()
+        response = client.get('/products/1/reviews')
+        body = {
+            'reviews' : [
+                {
+                    'id'          : i,
+                    'product_id'  : 1,
+                    'user_name'   : '딩',
+                    'rating'      : 3,
+                    'content'     : str(i),
+                    'image_url'   : None,
+                    'updated_at'  : datetime.now().strftime("%Y-%m-%d")
+                }for i in range(21,11,-1)
+            ]
+        }
+
+        self.assertEqual(response.json(), body)
+        self.assertEqual(response.status_code, 200)
+    
+    def test_success_reviews_filter_key_rating4(self):
+        client   = Client()
+        response = client.get('/products/1/reviews?rating=4')
+        body     = {
+            'reviews' :[
+                {
+                    'id'          : 3,
+                    'product_id'  : 1,
+                    'user_name'   : '딩',
+                    'rating'      : 4,
+                    'content'     : '3',
+                    'image_url'   : None,
+                    'updated_at'  : datetime.now().strftime("%Y-%m-%d")   
+                }, {
+                    'id'          : 1,
+                    'product_id'  : 1,
+                    'user_name'   : '딩',
+                    'rating'      : 4,
+                    'content'     : '1',
+                    'image_url'   : '123',
+                    'updated_at'  : datetime.now().strftime("%Y-%m-%d")   
+                }
+            ]
+        }
+
+        self.assertEqual(response.json(), body)
+        self.assertEqual(response.status_code, 200)
+    
+    def test_success_reviews_filter_key_has_image(self):
+        client   = Client()
+        response = client.get('/products/1/reviews?has_image=true')
+        body     = {
+            'reviews' : [
+                {
+                    'id'          : 2,
+                    'product_id'  : 1,
+                    'user_name'   : '딩',
+                    'rating'      : 3,
+                    'content'     : '2',
+                    'image_url'   : '1234',
+                    'updated_at'  : datetime.now().strftime("%Y-%m-%d")   
+                },{
+                    'id'          : 1,
+                    'product_id'  : 1,
+                    'user_name'   : '딩',
+                    'rating'      : 4,
+                    'content'     : '1',
+                    'image_url'   : '123',
+                    'updated_at'  : datetime.now().strftime("%Y-%m-%d")   
+                }
+            ]
+        }
+
+        self.assertEqual(response.json(), body)
         self.assertEqual(response.status_code, 200)
