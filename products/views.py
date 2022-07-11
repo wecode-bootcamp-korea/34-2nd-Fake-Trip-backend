@@ -11,35 +11,36 @@ from users.models    import Review
 
 class ProductListView(View):
     def get(self, request):
-        products = ['name', 'region', 'grade', 'check_in', 'start_date', 'end_date', 'check_out', 'start_date', 'end_date', 'rating', 'amanity']
+        products = ['name', 'region', 'grade', 'start_date', 'end_date','rating', 'amanity', 'sort', 'search']
         for product in products:
            globals()["{}".format(product)] = request.GET.get(product)
 
-        price = request.GET.get('price', 0)
-        sort        = request.GET.get('sort')
-        offset      = int(request.GET.get('offset', 0))
-        limit       = int(request.GET.get('limit', 100))
-        
+        min_price = request.GET.get('min_price',0)
+        max_price = request.GET.get('max_price',1000000)
+        offset    = int(request.GET.get('offset', 0))
+        limit     = int(request.GET.get('limit', 100))
+                
         q = Q()
 
-        if name:
-            q &= Q(name__contains = name)
-
         if region:
-            q &= Q(region__name__contains = region)
-        
+            q &= Q(region__name = region)
+        if search:
+            q &= (Q(name__contains = search) | Q(region__name__contains = search))
         if grade:
             q &= Q(grade = grade)
+        if amanity:
+            q &= Q(amenity__name= amanity)
+        if min_price and max_price:
+            q &= Q(room__price__range=[min_price,max_price])
 
-        if price:
-            q &= Q(room__price__gte = price)
-
-        sort_set = {
+        SORT_SET = {
             'random' : '?',
-            'check_in-ascending' : 'check_in'
+            'check_in-ascending' : 'check_in',
+            'price-ascending' : 'room__price'
         }
 
-        order_key = sort_set.get(sort, 'id')
+        order_key = SORT_SET.get(sort, 'id')
+
         products = Product.objects.filter(q).order_by(order_key)[offset:offset+limit]
 
         results = [
@@ -57,7 +58,10 @@ class ProductListView(View):
                 'main_image': product.productimage_set.get(is_main=1).url,
                 'amanity' : [amanity.name for amanity in product.amenity.all()],
                 'avg_rate' : product.review_set.aggregate(avg = Avg('rating'))['avg'],
-                'min_price' : product.room_set.aggregate(min = Min('price',output_field=IntegerField()))['min']
+                'price' : 
+                    {'default' : product.room_set.aggregate(min = Min('price',output_field=IntegerField()))['min'],
+                     'min_price' : product.room_set.filter(price__range=[min_price,max_price]).aggregate(min = Min('price',output_field=IntegerField()))['min']
+                    }
             } for product in products
             ]
         return JsonResponse({'results' : results}, status = 200)
@@ -80,7 +84,7 @@ class ProductView(View):
         is_sold_out = True
 
         for room in rooms:
-            for reservation in reservations:
+            for reservation in room.reservation_set.all():
                 reservation_date = set(pandas.date_range(reservation.start_date,reservation.end_date)[:-1])
                 if search_date & reservation_date:
                     room.quantity -= 1 
