@@ -155,3 +155,57 @@ class ReviewsView(View):
         ]
 
         return JsonResponse({'reviews' : result}, status = 200)
+
+
+class RoomsView(View):
+    def get(self, request, product_id):
+        start_date  = request.GET.get('start_date', datetime.now().strftime("%Y-%m-%d"))
+        end_date    = request.GET.get('end_date')
+        guests      = int(request.GET.get('guests',2))
+        
+        if not end_date:
+            join_date = datetime.now()+ timedelta(days=1)
+            end_date  = join_date.strftime("%Y-%m-%d")
+        
+        search_date = set(pandas.date_range(start_date,end_date)[:-1])
+        
+        q = Q(product_id = product_id)
+
+        q &= Q(max_guest__gte = guests)
+
+        rooms = Room.objects.filter(q).prefetch_related('reservation_set')
+
+        list1 = []
+        
+        for room in rooms:
+            for reservation in room.reservation_set.all():
+                reservation_date  = set(pandas.date_range(reservation.start_date,reservation.end_date)[:-1])        
+                if search_date & reservation_date:
+                    room.quantity -= 1
+                    if not room.quantity:
+                        list1.append(room.id)
+
+        p = Q()
+        
+        p &= Q(id__in = list1)
+
+        rooms = Room.objects.filter(q).exclude(p).order_by('price').prefetch_related('roomimage_set')
+
+        rooms_result = [
+            {
+                'room_id'    : room.id,
+                'name'       : room.name,
+                'price'      : int(room.price) * len(search_date),
+                'min_guests' : room.min_guest,
+                'max_guests' : room.max_guest,
+                'size'       : room.size,
+                'images'     : [
+                    {
+                        'id'      : image.id,
+                        'url'     : image.url,
+                        'is_main' : image.is_main
+                    }for image in room.roomimage_set.all()
+                ]
+            }for room in rooms]
+
+        return JsonResponse({'result' : rooms_result}, status = 200)
