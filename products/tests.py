@@ -4,6 +4,7 @@ from django.test import TestCase, Client
 
 from products.models   import Category, Region, Product, Room, ProductImage
 from users.models      import User, Review
+from orders.models     import Reservation
 from faketrip.settings import SECRET_KEY, ALGORITHM
 
 class ProductListTest(TestCase):
@@ -346,3 +347,90 @@ class ReviewsTest(TestCase):
 
         self.assertEqual(response.json(), body)
         self.assertEqual(response.status_code, 200)
+
+class RoomsTest(TestCase):
+    def setUp(self):
+        user =User.objects.create(
+            name = '위코드',
+            email = 'alsdgkja@natemar.com',
+            kakao_pk = 12397511,
+        )
+
+        product = Product.objects.create(
+            id=1,
+            name       = '신라호텔',
+            address    = '서울특별시 강남구',
+            check_in   = '15:00',
+            check_out  = '11:00',
+            latitude   = 123.1419517111,
+            longtitude = 60.1231419112,
+        )    
+
+        Room.objects.create(
+            id =1,
+            name     = '가나다',
+            price    = 100000.00,
+            product  = product,
+            quantity = 1,
+            size     = 20,
+        )
+
+        Room.objects.create(
+            id=2,
+            name     = '가나',
+            price    = 120000.00,
+            product  = product,
+            quantity = 1,
+            size     = 20,
+        )
+
+        Room.objects.create(
+            id=3,
+            name     = '가',
+            price    = 140000.00,
+            product  = product,
+            quantity = 1,
+            size     = 20,
+        )
+
+        Reservation.objects.create(
+            id = 1,
+            user = user,
+            room_id = 1,
+            start_date = '2022-03-31',
+            end_date = '2022-04-02',
+            guest_information = {'agag' : 'agagag'}
+        )
+    
+    def tearDown(self):
+        Reservation.objects.all().delete()
+        User.objects.all().delete()
+        Room.objects.all().delete()
+        Product.objects.all().delete()
+
+    def test_success_rooms_get(self):
+        client   = Client()
+        response = client.get('/products/1/rooms?start_date=2022-03-31&end_date=2022-04-01')
+        body     = {
+            'result': 
+            [
+                {
+                    'room_id': 2, 
+                    'name': '가나', 
+                    'price': 120000, 
+                    'min_guests': 2, 
+                    'max_guests': 2, 
+                    'size': 20, 
+                    'images': []
+                },{
+                    'room_id': 3,
+                    'name': '가',
+                    'price': 140000,
+                    'min_guests': 2, 
+                    'max_guests': 2, 
+                    'size': 20, 
+                    'images': []
+                }
+            ]
+        }
+        self.assertEqual(response.json(),body)
