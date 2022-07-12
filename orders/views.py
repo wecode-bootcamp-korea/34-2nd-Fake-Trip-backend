@@ -9,8 +9,9 @@ from core.token_validators import token_validator
 
 class ReservationView(View):
     @token_validator
-    def get(self, request, room_id):
+    def get(self, request):
         try:
+            room_id    = request.GET.get('room_id')
             room       = Room.objects.select_related('room').get(id = room_id)
             user       = request.user
             start_date = request.GET.get('start_date',datetime.now().strftime("%Y-%m-%d"))
