@@ -21,3 +21,4 @@ class ReservationStatus(models.Model):
 
     def __str__(self):
         return f'{self.status} ({self.pk})'
+        
