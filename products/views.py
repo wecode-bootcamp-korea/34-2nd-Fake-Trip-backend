@@ -2,6 +2,13 @@ import pandas
 
 from django.http                import JsonResponse
 from django.views               import View
+from django.db.models           import Q
+from django.db.models           import Q, Min, Avg, Count, IntegerField, Max
+from django.db.models.functions import Coalesce
+from datetime                   import datetime, timedelta
+
+from django.http                import JsonResponse
+from django.views               import View
 from django.db.models           import Q, Min, Avg, Count, IntegerField, Max
 from django.db.models.functions import Coalesce
 
@@ -152,9 +159,9 @@ class ReviewsView(View):
 
 class RoomsView(View):
     def get(self, request, product_id):
-        start_date  = request.GET.get('start_date', datetime.now().strftime("%Y-%m-%d"))
-        end_date    = request.GET.get('end_date')
-        guests      = int(request.GET.get('guests',2))
+        start_date = request.GET.get('start_date', datetime.now().strftime("%Y-%m-%d"))
+        end_date   = request.GET.get('end_date')
+        guests     = int(request.GET.get('guests',2))
         
         if not end_date:
             join_date = datetime.now()+ timedelta(days=1)
@@ -178,15 +185,13 @@ class RoomsView(View):
                     if not room.quantity:
                         list1.append(room.id)
 
-        p = Q()
-        
         p &= Q(id__in = list1)
 
         rooms = Room.objects.filter(q).exclude(p).order_by('price').prefetch_related('roomimage_set')
 
         rooms_result = [
             {
-                'room_id'    : room.id,
+                'id'         : room.id,
                 'name'       : room.name,
                 'price'      : int(room.price) * len(search_date),
                 'min_guests' : room.min_guest,
@@ -197,8 +202,8 @@ class RoomsView(View):
                         'id'      : image.id,
                         'url'     : image.url,
                         'is_main' : image.is_main
-                    }for image in room.roomimage_set.all()
+                    }for image in room.roomimage_set.order_by('is_main')
                 ]
             }for room in rooms]
 
-        return JsonResponse({'result' : rooms_result}, status = 200)
+        return JsonResponse({'rooms' : rooms_result}, status = 200)
