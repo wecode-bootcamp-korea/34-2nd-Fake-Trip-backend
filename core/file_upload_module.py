@@ -8,7 +8,10 @@ class FileHandler:
     
     def upload(self, file):
         return self.client.upload(file)
-
+    
+    def delete(self, file_url):
+        return self.client.delete(file_url)
+    
 class AwsUploader:
     def __init__(self, client, config):
         self.client = client
@@ -26,7 +29,7 @@ class AwsUploader:
 
         try: 
             extra_args  = {'ContentType' : file.content_type}
-            file_id    = str(uuid.uuid4())
+            file_id     = str(uuid.uuid4())
             bucket_name = self.config.get("bucket_name")
             
             self.client.upload_fileobj(
@@ -40,3 +43,8 @@ class AwsUploader:
 
         except:
             return None
+
+    def delete(self, file_name):
+        bucket_name = self.config.get("bucket_name")
+        
+        return self.client.delete_object(bucket=bucket_name, Key=f'{file_name}')
