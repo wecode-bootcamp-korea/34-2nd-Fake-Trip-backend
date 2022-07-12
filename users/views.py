@@ -2,13 +2,15 @@ import requests
 
 import jwt
 
-from django.views import View
-from django.http  import JsonResponse
+from django.views           import View
+from django.http            import JsonResponse
+from django.core.exceptions import ValidationError
 
-from users.models      import User
-from faketrip.settings import SECRET_KEY, ALGORITHM
-from core.social_apis  import Kakao_Token_Error, KakaoAPI
-from core.validators   import validate_phone_number
+from users.models          import User
+from faketrip.settings     import SECRET_KEY, ALGORITHM
+from core.social_apis      import Kakao_Token_Error, KakaoAPI
+from core.validators       import validate_phone_number
+from core.token_validators import token_validator
 
 class SigninView(View):
     def get(self, request):
