@@ -2,7 +2,7 @@ import jwt
 import boto3
 
 from django.views           import View
-from django.http            import JsonResponse
+from django.http            import JsonResponse, HttpResponse
 from django.core.exceptions import ValidationError
 
 from users.models            import User, Review
@@ -88,3 +88,16 @@ class ReviewView(View):
         )
 
         return JsonResponse({'message' : 'Create Review'}, status = 201)
+    
+    @token_validator
+    def post(self, request):
+        try:
+            review_id = request.GET.get('review_id')
+            file_url  = Review.objects.get(id = review_id).image_url
+
+            file_handler.delete(file_url)
+
+            return HttpResponse(status = 204)
+
+        except Review.DoesNotExist:
+            return JsonResponse({'message' : 'Invalid Review'}, status = 400)
