@@ -31,6 +31,7 @@ class AwsUploader:
             extra_args  = {'ContentType' : file.content_type}
             file_id     = str(uuid.uuid4())
             bucket_name = self.config.get("bucket_name")
+            image_url   = f'http://{bucket_name}.s3.ap-northeast-2.amazonaws.com/'+file_id
             
             self.client.upload_fileobj(
                 file,
@@ -39,7 +40,7 @@ class AwsUploader:
                 ExtraArgs = extra_args
             )
 
-            return self.create_file_name(file)
+            return image_url
 
         except:
             return None

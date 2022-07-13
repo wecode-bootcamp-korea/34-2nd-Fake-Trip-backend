@@ -72,12 +72,16 @@ class ProductListView(View):
             } for product in products
             ]
         return JsonResponse({'results' : results}, status = 200)
-
+        
 class ProductView(View):
     def get(self, request, product_id):
         try:
-            start_date = request.GET.get('start_date')
+            start_date = request.GET.get('start_date', datetime.now().strftime("%Y-%m-%d"))
             end_date   = request.GET.get('end_date')
+
+            if not end_date:
+                join_date = datetime.now()+ timedelta(days=1)
+                end_date  = join_date.strftime("%Y-%m-%d")
 
             product = Product.objects.annotate(
                 rating       = Coalesce(Avg('review__rating'),0.0),
@@ -110,7 +114,7 @@ class ProductView(View):
                 'latitude'     : product.latitude,
                 'longtitude'   : product.longtitude,
                 'price'        : product_price * len(search_date),
-                'rating'       : product.rating,
+                'rating'       : round(product.rating,1),
                 'review_count' : product.review_count,
                 'images'       : [
                     {
@@ -181,9 +185,9 @@ class RoomsView(View):
         q = Q(product_id = product_id)
 
         q &= Q(max_guest__gte = guests)
-
+        
         rooms = Room.objects.filter(q).prefetch_related('reservation_set')
-
+        
         list1 = []
         
         for room in rooms:
@@ -193,8 +197,8 @@ class RoomsView(View):
                     room.quantity -= 1
                     if not room.quantity:
                         list1.append(room.id)
-
-        p &= Q(id__in = list1)
+        
+        p = Q(id__in = list1)
 
         rooms = Room.objects.filter(q).exclude(p).order_by('price').prefetch_related('roomimage_set')
 
@@ -211,7 +215,7 @@ class RoomsView(View):
                         'id'      : image.id,
                         'url'     : image.url,
                         'is_main' : image.is_main
-                    }for image in room.roomimage_set.order_by('is_main')
+                    }for image in room.roomimage_set.filter(is_main=True)
                 ]
             }for room in rooms]
 
