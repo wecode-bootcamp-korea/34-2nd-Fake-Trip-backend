@@ -1,4 +1,6 @@
 import pandas
+import json
+from datetime import datetime
 
 from django.http                import JsonResponse
 from django.views               import View
@@ -12,43 +14,80 @@ from django.views               import View
 from django.db.models           import Q, Min, Avg, Count, IntegerField, Max
 from django.db.models.functions import Coalesce
 
-from products.models import Product, Room
+from products.models import Product, Room, Amenity
 from orders.models   import Reservation
 from users.models    import Review
 
 class ProductListView(View):
     def get(self, request):
-        products = ['name', 'region', 'grade', 'start_date', 'end_date','rating', 'amanity', 'sort', 'search']
+        products = ['name', 'region', 'grade', 'rating', 'sort', 'search', 'guest', 'category']
         for product in products:
            globals()["{}".format(product)] = request.GET.get(product)
 
+        amenity = request.GET.getlist('amenity')
+        guest     = request.GET.get('guest',0)
+        start_date = request.GET.get('start_date',0)
+        end_date = request.GET.get('end_date',1000000)
         min_price = request.GET.get('min_price',0)
         max_price = request.GET.get('max_price',1000000)
         offset    = int(request.GET.get('offset', 0))
-        limit     = int(request.GET.get('limit', 100))
+        limit     = int(request.GET.get('limit', 10))
+
+        def rooms_full(product,start_date,end_date):
+            reservations = Reservation.objects.filter(room__product = product) 
+            rooms        = Room.objects.filter(product = product)   
+            search_date  = set(pandas.date_range(start_date,end_date)[:-1]) 
+            is_sold_out = []
+
+            for room in rooms:
+                for reservation in room.reservation_set.all().filter(room__price__range=[min_price,max_price]).filter(room__max_guest__gte=guest):
+                    reservation_date = set(pandas.date_range(reservation.start_date,reservation.end_date)[:-1])
+                    if search_date & reservation_date:
+                        room.quantity -= 1 
+                        if bool(room.quantity) == False:
+                            is_sold_out.append(reservation.room_id)
+            return is_sold_out
+
+        def room_min_price(product, min_price, max_price, guest, start_date, end_date):
+            min_price = product.room_set.filter(price__range=[min_price,max_price]).filter(max_guest__gte=guest).exclude(id__in=rooms_full(product,start_date,end_date)).aggregate(min = Min('price',output_field=IntegerField()))['min']
+            return min_price
+
+        def product_amenity(product, amenity):
+            a=0
+            if amenity != []:
+                for j in amenity:
+                    if j in [i.name for i in product.amenity.all()]:
+                        a += 1
+                    if a == len(amenity):
+                        return [i.name for i in product.amenity.all()]
+            else:
+                return [amenity.name for amenity in product.amenity.all()]
+
                 
         q = Q()
 
-        if region:
-            q &= Q(region__name = region)
         if search:
             q &= (Q(name__contains = search) | Q(region__name__contains = search))
-        if grade:
-            q &= Q(grade = grade)
-        if amanity:
-            q &= Q(amenity__name= amanity)
-        if min_price and max_price:
-            q &= Q(room__price__range=[min_price,max_price])
 
+        FILTER_SET = {
+            'region'  : 'region__name',
+            'amenity' : 'amenity__name',
+            'grade'   : 'grade__gte',
+            'guest'   : 'room__max_guest__gte',
+            '[min_price,max_price]' : 'room__price__range',
+            'category' : 'category__name'
+            }
         SORT_SET = {
             'random' : '?',
             'check_in-ascending' : 'check_in',
-            'price-ascending' : 'room__price'
+            'price-ascending' : 'room__price',
+            'id' : 'id'
         }
 
+        filter = { FILTER_SET.get(key) : value for key, value in request.GET.items() if FILTER_SET.get(key) }
         order_key = SORT_SET.get(sort, 'id')
 
-        products = Product.objects.filter(q).order_by(order_key)[offset:offset+limit]
+        products = Product.objects.filter(**filter).filter(q).order_by(order_key).distinct()[offset:offset+limit]
 
         results = [
             {
@@ -63,13 +102,13 @@ class ProductListView(View):
                 'longtitude' : product.longtitude,
                 'category' : product.category.name,
                 'main_image': product.productimage_set.get(is_main=1).url,
-                'amanity' : [amanity.name for amanity in product.amenity.all()],
+                'amenity' : [amenity.name for amenity in product.amenity.all()],
                 'avg_rate' : product.review_set.aggregate(avg = Avg('rating'))['avg'],
                 'price' : 
                     {'default' : product.room_set.aggregate(min = Min('price',output_field=IntegerField()))['min'],
-                     'min_price' : product.room_set.filter(price__range=[min_price,max_price]).aggregate(min = Min('price',output_field=IntegerField()))['min']
+                    'min_price' : room_min_price(product, min_price, max_price, guest, start_date, end_date)
                     }
-            } for product in products
+            } for product in products if room_min_price(product, min_price, max_price, guest, start_date, end_date) != None and product_amenity(product, amenity) != None
             ]
         return JsonResponse({'results' : results}, status = 200)
 
