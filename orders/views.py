@@ -23,7 +23,7 @@ class ReservationView(View):
     def get(self, request):
         try:
             room_id    = request.GET.get('room_id')
-            room       = Room.objects.select_related('room').get(id = room_id)
+            room       = Room.objects.get(id = room_id)
             user       = request.user
             start_date = request.GET.get('start_date',datetime.now().strftime("%Y-%m-%d"))
             end_date   = request.GET.get('end_date')
@@ -43,7 +43,7 @@ class ReservationView(View):
                     {   'id'    : room.id,
                         'name'  : room.name,
                         'price' : int(room.price) * len(search_date),
-                        'image' : room.image_set.filter(is_main = True).first().url
+                        'image' : room.roomimage_set.filter(is_main = True).first().url
                     },
                 'start_date' : start_date,
                 'end_date'   : end_date,

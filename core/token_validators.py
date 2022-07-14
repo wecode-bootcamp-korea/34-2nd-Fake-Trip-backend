@@ -9,7 +9,9 @@ def token_validator(func):
     def wrapper(self,request,*args,**kwargs):
         try:
             access_token = request.headers.get("Authorization",None)
+            print(access_token)
             payload      = jwt.decode(access_token, SECRET_KEY, ALGORITHM)
+            print(payload)
             user         = User.objects.get(id=payload['user_id'])
             request.user = user  
             

@@ -1,5 +1,6 @@
 import jwt
 import boto3
+import json
 
 from django.views           import View
 from django.http            import JsonResponse, HttpResponse
@@ -30,7 +31,7 @@ class SigninView(View):
                 user.save()
 
             authorization = jwt.encode({'user_id' : user.id}, SECRET_KEY, ALGORITHM)
-
+            print(authorization)
             return JsonResponse({'message' : 'SUCCESS'},headers = {'Authorization' : authorization}, status = 200)
         
         except Kakao_Token_Error as error:
@@ -40,7 +41,7 @@ class UserView(View):
     @token_validator
     def patch(self, request):
         try:
-            phone_number = request.body.get(phone_number)
+            phone_number = json.loads(request.body).get('phone_number')
 
             validate_phone_number(phone_number)
 
