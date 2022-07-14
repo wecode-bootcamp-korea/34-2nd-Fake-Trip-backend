@@ -24,20 +24,20 @@ class ProductListView(View):
         for product in products:
            globals()["{}".format(product)] = request.GET.get(product)
 
-        amenity = request.GET.getlist('amenity')
-        guest     = request.GET.get('guest',0)
+        amenity    = request.GET.getlist('amenity')
+        guest      = request.GET.get('guest',0)
         start_date = request.GET.get('start_date',0)
-        end_date = request.GET.get('end_date',1000000)
-        min_price = request.GET.get('min_price',0)
-        max_price = request.GET.get('max_price',1000000)
-        offset    = int(request.GET.get('offset', 0))
-        limit     = int(request.GET.get('limit', 10))
+        end_date   = request.GET.get('end_date',1000000)
+        min_price  = request.GET.get('min_price',0)
+        max_price  = request.GET.get('max_price',1000000)
+        offset     = int(request.GET.get('offset', 0))
+        limit      = int(request.GET.get('limit', 10))
 
         def rooms_full(product,start_date,end_date):
             reservations = Reservation.objects.filter(room__product = product) 
             rooms        = Room.objects.filter(product = product)   
             search_date  = set(pandas.date_range(start_date,end_date)[:-1]) 
-            is_sold_out = []
+            is_sold_out  = []
 
             for room in rooms:
                 for reservation in room.reservation_set.all().filter(room__price__range=[min_price,max_price]).filter(room__max_guest__gte=guest):
@@ -62,7 +62,6 @@ class ProductListView(View):
                         return [i.name for i in product.amenity.all()]
             else:
                 return [amenity.name for amenity in product.amenity.all()]
-
                 
         q = Q()
 
@@ -79,15 +78,13 @@ class ProductListView(View):
             }
         SORT_SET = {
             'random' : '?',
-            'check_in-ascending' : 'check_in',
-            'price-ascending' : 'room__price',
-            'id' : 'id'
+            'check_in-ascending' : 'check_in'
         }
 
         filter = { FILTER_SET.get(key) : value for key, value in request.GET.items() if FILTER_SET.get(key) }
         order_key = SORT_SET.get(sort, 'id')
 
-        products = Product.objects.filter(**filter).filter(q).order_by(order_key).distinct()[offset:offset+limit]
+        products = Product.objects.filter(**filter).filter(q).order_by(order_key).distinct()
 
         results = [
             {
@@ -109,7 +106,7 @@ class ProductListView(View):
                     'min_price' : room_min_price(product, min_price, max_price, guest, start_date, end_date)
                     }
             } for product in products if room_min_price(product, min_price, max_price, guest, start_date, end_date) != None and product_amenity(product, amenity) != None
-            ]
+            ][offset:offset+limit]
         return JsonResponse({'results' : results}, status = 200)
 
 class ProductView(View):
