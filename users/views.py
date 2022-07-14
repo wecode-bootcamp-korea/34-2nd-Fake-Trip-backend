@@ -90,7 +90,7 @@ class ReviewView(View):
         return JsonResponse({'message' : 'Create Review'}, status = 201)
     
     @token_validator
-    def post(self, request):
+    def delete(self, request):
         try:
             review_id = request.GET.get('review_id')
             file_url  = Review.objects.get(id = review_id).image_url

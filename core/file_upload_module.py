@@ -39,7 +39,7 @@ class AwsUploader:
                 ExtraArgs = extra_args
             )
 
-            return self.create_file_name(file)
+            return f'http://{self.config.get("bucket_name")}.s3.ap-northeast-2.amazonaws.com/'+file_id
 
         except:
             return None

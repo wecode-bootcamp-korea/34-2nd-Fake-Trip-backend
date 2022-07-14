@@ -112,8 +112,13 @@ class ProductListView(View):
 class ProductView(View):
     def get(self, request, product_id):
         try:
-            start_date = request.GET.get('start_date')
+            start_date = request.GET.get('start_date', datetime.now().strftime("%Y-%m-%d"))
             end_date   = request.GET.get('end_date')
+            guests     = int(request.GET.get('guests',2))
+
+            if not end_date:
+                join_date = datetime.now()+ timedelta(days=1)
+                end_date  = join_date.strftime("%Y-%m-%d")
 
             product = Product.objects.annotate(
                 rating       = Coalesce(Avg('review__rating'),0.0),
@@ -149,7 +154,7 @@ class ProductView(View):
                 'rating'       : product.rating,
                 'review_count' : product.review_count,
                 'images'       : [
-                    {
+                    {   'id'      : image.id,
                         'url'     : image.url,
                         'is_main' : image.is_main
                     }for image in product.productimage_set.all()
@@ -230,7 +235,7 @@ class RoomsView(View):
                     if not room.quantity:
                         list1.append(room.id)
 
-        p &= Q(id__in = list1)
+        p = Q(id__in = list1)
 
         rooms = Room.objects.filter(q).exclude(p).order_by('price').prefetch_related('roomimage_set')
 
