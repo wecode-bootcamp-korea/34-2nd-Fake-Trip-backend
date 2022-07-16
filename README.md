@@ -8,7 +8,7 @@
 
 ## 🧑🏻‍💻 팀 인원
 - BE(2명): [박민하](https://github.com/miracle-21), [정진관](https://github.com/dingwan0331)
-- FE(4명): [김인태](https://github.com/dlsxody1), 장류광, 정현준, 조예지
+- FE(4명): [김인태](https://github.com/dlsxody1), [장류광](https://github.com/dkzks44), 정현준, [조예지](https://github.com/Dumibell)
   - [FE GitHub 링크](https://github.com/wecode-bootcamp-korea/34-2nd-Fake-Trip-frontend)
 
 ## 🖥 Backend 역할
@@ -26,19 +26,25 @@
 
 **정진관**
 - ERD 모델링
-- 웹 서버 구축(AWS)
-- 회원가입/로그인(Signup/Signin)
-  - Kakao Rest API
-- 상품페이지(Product) API
+- 웹 서버 구축(AWS: EC2 & RDS)
+- 회원가입/로그인(SigninView)
   - GET
-  - 숙소에 대한 방 정보, 리뷰 조회 가능
+  - Kakao API를 통한 소셜로그인 기능
+  - JWT를 이용하여 토큰 발급
+- 상품페이지(ProductView & RoomsView)
+  - GET
+  - 방의 재고와 예약테이블 현황에 따른 예약가능 여부 반환
+  - 예약인원 + 예약기간에 따라 예약가능한 rooms 데이터만 반환
 - 리뷰 기능(Review)
-  - POST, GET
-  - S3 기능을 사용한 이미지 업로드
-- 예약 기능(Reservation)
+  - POST, GET, DELETE
+  - S3 & Form Data를 이용한 이미지 업로드 기능
+  - 
+- 유저 정보 변경 기능(UserView)
+- 예약 기능(ReservationView)
   - POST
-  - 예약자 정보 변경 기능 포함
-
+  - 예약자 정보와 투숙객 정보를 분리하여 관리
+  - validators moulde의 클래스화
+  - Json Field를 활용한 투숙객 정보 관리
 ## 💻 Backend 기술 스택
 
 |                                                Language                                                |                                                Framwork                                                |                                               Database                                               |                                                     ENV                                                      |                                                   HTTP                                                   |                                                  Deploy                                                 |
