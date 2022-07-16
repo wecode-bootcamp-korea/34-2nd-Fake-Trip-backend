@@ -10,7 +10,7 @@
 - BE(2명): 박민하, 정진관
   - [박민하 GitHub 링크](https://github.com/miracle-21)
   - [정진관 GitHub 링크](https://github.com/dingwan0331)
-- FE(3명): 김인태, 장류광, 정현준, 조예지
+- FE(4명): 김인태, 장류광, 정현준, 조예지
   - [FE GitHub 링크](https://github.com/wecode-bootcamp-korea/34-2nd-Fake-Trip-frontend)
 
 ## 🖥 Backend 역할
