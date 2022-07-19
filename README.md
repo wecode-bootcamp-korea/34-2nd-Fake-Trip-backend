@@ -7,7 +7,8 @@
 - 개발 기간 : 2022-07-04 ~ 2022-07-15 (12일)
 
 ## 🧑🏻‍💻 팀 인원
-- BE(2명): [박민하](https://github.com/miracle-21), [정진관](https://github.com/dingwan0331)
+- BE(2명): [박민하](https://github.com/miracle-21),  
+  [정진관](https://github.com/dingwan0331)-[회고문링크](https://dingwan0331.tistory.com/113)
 - FE(4명): [김인태](https://github.com/dlsxody1), [장류광](https://github.com/dkzks44), 정현준, [조예지](https://github.com/Dumibell)
   - [FE GitHub 링크](https://github.com/wecode-bootcamp-korea/34-2nd-Fake-Trip-frontend)
 
